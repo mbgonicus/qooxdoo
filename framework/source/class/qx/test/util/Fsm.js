@@ -197,6 +197,47 @@ qx.Class.define("qx.test.util.Fsm",
 
       // Ensure that there are no differences in internal state
       this.assertEquals(before, after, "single group (" + intermediate + ")");
+    },
+
+    /**
+     * Ensure that only such transitions are used that have a user-defined
+     * predicate, if the predicates shall be checked (see github issue 9335).
+     */
+    testInvokePredicateDefinedTransitionsOnly : function()
+    {
+      var stateA = new qx.util.fsm.State(
+        "stateA",
+        {
+          onentry : function(fsm)
+          {
+            if (fsm.getObject("wasAlreadyHere"))
+            {
+              var o = fsm.getObject("testObject");
+              o.fail("This state shall not be invoked by the transition");
+            }
+            fsm.addObject("wasAlreadyHere", true);
+          },
+          events :
+          {
+            "myEvent" : qx.util.fsm.FiniteStateMachine.EventHandling.PREDICATE,
+            "unusedEvent" : "stateA->stateA"
+          }
+        }
+      );
+
+      trans = new qx.util.fsm.Transition(
+        "stateA->stateA",
+        {
+          nextState : "stateA"
+        }
+      );
+      stateA.addTransition(trans);
+
+      var fsm = new qx.util.fsm.FiniteStateMachine("TestFSM");
+      fsm.addObject("testObject", this);
+      fsm.addState(stateA);
+      fsm.start();
+      fsm.fireImmediateEvent("myEvent");
     }
   }
 });
